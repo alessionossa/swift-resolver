@@ -106,7 +106,7 @@ public class Resolver {
 		return domain
 	}
 
-	private func query(_ name: String, type: ResourceRecordType = .host, timeout: UInt? = nil) throws -> [ResourceRecord] {
+	private func query(_ name: String, type: ResourceRecordType = .host, timeout: UInt? = nil) throws -> Message {
 		let tmout = UniSocketTimeout(connect: timeout ?? self.timeout, read: timeout ?? self.timeout, write: timeout ?? self.timeout)
 		var nameserver = self.nameserver
         var ipNameserver: String
@@ -120,7 +120,7 @@ public class Resolver {
 				domain.insert("", at: 0)
 			}
 		}
-		var result: [ResourceRecord]?
+		var result: Message?
 		var errstr = "TIMEOUT"
 		while result == nil, domain.count > 0, nameserver.count > 0 {
 			var qname: String
@@ -175,7 +175,7 @@ public class Resolver {
 						errstr = "NXDOMAIN"
 						domain.removeFirst()
 					default:
-						result = a.answers
+						result = a
 					}
 				}
 			} catch UniSocketError.error(let detail) {
@@ -198,8 +198,8 @@ public class Resolver {
 		var result = [ResolverTarget]()
 		var queue = [ResourceRecord]()
 		var cname: String? = nil
-		queue = try query(name, type: .host, timeout: timeout)
-		queue += try query(name, type: .host6, timeout: timeout)
+        queue = try query(name, type: .host, timeout: timeout).answers
+        queue += try query(name, type: .host6, timeout: timeout).answers
 		while !queue.isEmpty {
 			let record = queue.removeFirst()
 			if let host = record as? HostRecord<IPv4> {
@@ -214,8 +214,8 @@ public class Resolver {
 				throw ResolverError.error(detail: "unexpected response")
 			}
 			if queue.isEmpty, result.isEmpty, let alias = cname {
-				queue += try query(alias, type: .host, timeout: timeout)
-				queue += try query(alias, type: .host6, timeout: timeout)
+                queue += try query(alias, type: .host, timeout: timeout).answers
+                queue += try query(alias, type: .host6, timeout: timeout).answers
 			}
 		}
 		return result
@@ -223,7 +223,8 @@ public class Resolver {
 
 	public func discover(_ service: String, timeout: UInt? = nil) throws -> [ResolverTarget] {
 		var result = [ResolverTarget]()
-		for record in try query(service, type: .service, timeout: timeout) {
+        let answer = try query(service, type: .service, timeout: timeout)
+        for record in answer.answers {
 			if let srv = record as? ServiceRecord {
 				for host in try resolve(srv.server) {
 					let target = ResolverTarget(name: host.name, address: host.address, port: Int(srv.port), weight: Int(srv.weight), priority: Int(srv.priority))
