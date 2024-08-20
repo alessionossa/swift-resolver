@@ -106,7 +106,7 @@ public class Resolver {
 		return domain
 	}
 
-	private func query(_ name: String, type: ResourceRecordType = .host, timeout: UInt? = nil) throws -> Message {
+	public func query(_ name: String, type: ResourceRecordType = .host, timeout: UInt? = nil) throws -> Message {
 		let tmout = UniSocketTimeout(connect: timeout ?? self.timeout, read: timeout ?? self.timeout, write: timeout ?? self.timeout)
 		var nameserver = self.nameserver
         var ipNameserver: String
