@@ -158,7 +158,7 @@ public class Resolver {
 					}
 					answer = try Message.init(deserialize: response)
 					if answer!.truncation {
-						sock = try UniSocket(type: .tcp, peer: nameserver.first!, port: portNameserver, timeout: tmout)
+						sock = try UniSocket(type: .tcp, peer: ipNameserver, port: portNameserver, timeout: tmout)
 					}
 				}
 				if let a = answer {
